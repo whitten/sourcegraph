@@ -93,6 +93,10 @@ func (s *updateScheduler) runScheduleLoop(ctx context.Context) {
 		select {
 		case <-s.schedule.wakeup:
 		case <-ctx.Done():
+			s.schedule.mu.Lock()
+			s.schedule.index = make(map[api.RepoName]*scheduledRepoUpdate)
+			s.schedule.heap = nil
+			s.schedule.mu.Unlock()
 			return
 		}
 
