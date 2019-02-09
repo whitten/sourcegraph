@@ -10,10 +10,12 @@ All notable changes to Sourcegraph are documented in this file.
 ### Added
 
 - Added Docker-specific help text when running the Sourcegraph docker image in an environment with an sufficient open file descriptor limit.
+- Site admins can query a user by email address or username from the GraphQL API.
 
 ### Changed
 
 - File match search results now show full repo name if there are results from mirrors on different code hosts (e.g. github.com/sourcegraph/sourcegraph and gitlab.com/sourcegraph/sourcegraph)
+- Deprecated `username` field when querying for a user. Use `usernameOrEmail` instead.
 
 ### Fixed
 
