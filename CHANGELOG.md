@@ -16,6 +16,7 @@ All notable changes to Sourcegraph are documented in this file.
 - File match search results now show full repo name if there are results from mirrors on different code hosts (e.g. github.com/sourcegraph/sourcegraph and gitlab.com/sourcegraph/sourcegraph)
 
 ### Fixed
+- The extension debug menu no longer shows a bullet point.
 
 ### Removed
 
