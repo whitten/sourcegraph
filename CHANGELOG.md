@@ -13,7 +13,11 @@ All notable changes to Sourcegraph are documented in this file.
 
 ### Changed
 
-- File match search results now show full repo name if there are results from mirrors on different code hosts (e.g. github.com/sourcegraph/sourcegraph and gitlab.com/sourcegraph/sourcegraph)
+- File match search results now show full repo name if there are results from
+  mirrors on different code hosts (e.g. github.com/sourcegraph/sourcegraph and
+  gitlab.com/sourcegraph/sourcegraph)
+- Common regexp search mistakes are now automattically fixed ([see this issue
+  for more info.](https://github.com/sourcegraph/sourcegraph/issues/2125))
 
 ### Fixed
 
