@@ -123,7 +123,7 @@ func setValue(dst *Value, valueString string, valueType ValueType) error {
 	case StringType:
 		dst.String = &valueString
 	case RegexpType:
-		p, err := regexp.Compile(valueString)
+		p, err := compileRegexp(valueString)
 		if err != nil {
 			return err
 		}
@@ -138,6 +138,106 @@ func setValue(dst *Value, valueString string, valueType ValueType) error {
 		return errors.New("no type for literal")
 	}
 	return nil
+}
+
+var possibleEscapeErrorRegexp = regexp.MustCompile(`missing closing `)
+
+func compileRegexp(value string) (*regexp.Regexp, error) {
+	var r *regexp.Regexp
+	var err error
+
+	v := preprocessRegexpQuery(value)
+
+	r, err = regexp.Compile(v)
+	if err != nil {
+		return fixupRegexpCompileError(v, err)
+	}
+
+	return r, err
+}
+
+var unescapedDollarSignRegexp = regexp.MustCompile(`[^\\]?\$.*$`)
+
+// preprocessRegexpQuery looks for common mistakes in regexp search queries that
+// don't cause regexp compile errors and fix them beforehand.
+func preprocessRegexpQuery(value string) string {
+	v := value
+
+	// If we find a `$` that wasn't escaped, escape it.
+	if match := unescapedDollarSignRegexp.FindStringIndex(v); len(match) > 0 {
+		i := match[0]
+		if string(v[i]) != "$" {
+			// If first character in match substring isn't `$`, adjust by 1
+			i++
+		}
+
+		v = fmt.Sprintf(`%s\%s`, v[:i], v[i:])
+	}
+
+	return v
+}
+
+var escapeErrorRegexps = []*regexp.Regexp{
+	regexp.MustCompile("missing argument to repetition operator: `"),
+	regexp.MustCompile("missing closing "),
+}
+
+const (
+	asterisk    rune = 42
+	openParen   rune = 40
+	openBracket rune = 91
+)
+
+var unmatchedOpeningRuneRegexps = map[rune]*regexp.Regexp{
+	openParen:   regexp.MustCompile(`\([^\)]*$`),
+	openBracket: regexp.MustCompile(`\[[^\]]*$`),
+}
+
+func fixupRegexpCompileError(value string, err error) (*regexp.Regexp, error) {
+	msg := err.Error()
+	var matchIndex []int
+
+	for _, errorRegexp := range escapeErrorRegexps {
+		matchIndex = errorRegexp.FindStringIndex(msg)
+		if len(matchIndex) > 0 {
+			break
+		}
+	}
+
+	if len(matchIndex) == 0 {
+		return nil, err
+	}
+
+	runeToEscape := flipRune(rune(msg[matchIndex[1]]))
+	if runeToEscape == asterisk {
+		toEscape := string(runeToEscape)
+		escaper := strings.NewReplacer(toEscape, `\`+toEscape)
+
+		correctedValue := escaper.Replace(value)
+
+		return regexp.Compile(correctedValue)
+	}
+
+	r := unmatchedOpeningRuneRegexps[runeToEscape]
+
+	match := r.FindStringIndex(value)
+	correctedValue := fmt.Sprintf(`%s\%s`, value[:match[0]], value[match[0]:])
+
+	return regexp.Compile(correctedValue)
+}
+
+// flipRune maps opening block characters (e.g. ), ]) to their opening
+// counterparts. If the rune provided is not one of those, this func returns
+// the identity of the rune.
+func flipRune(r rune) rune {
+	switch r {
+	case 41: // )
+		return r - 1
+	case 93, 125: // ]
+		return r - 2
+	}
+
+	return r
 }
 
 // unquoteString is like strings.Unquote except that it supports single-quoted

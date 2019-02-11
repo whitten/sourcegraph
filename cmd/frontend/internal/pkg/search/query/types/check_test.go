@@ -144,3 +144,61 @@ func TestUnquoteString(t *testing.T) {
 		})
 	}
 }
+
+func TestCheck_fixup(t *testing.T) {
+	toValue := func(v *Value) value { return value{Not: v.Not(), Value: v.Value()} }
+	toTestValueMap := func(fields map[string][]*Value) map[string][]value {
+		m := make(map[string][]value, len(fields))
+		for f, vs := range fields {
+			m[f] = make([]value, len(vs))
+			for i, v := range vs {
+				m[f][i] = toValue(v)
+			}
+		}
+		return m
+	}
+
+	conf := Config{
+		FieldTypes: map[string]FieldType{
+			"": {
+				Literal: RegexpType,
+				Quoted:  StringType,
+			},
+		},
+		FieldAliases: map[string]string{},
+	}
+
+	tests := map[string]struct {
+		want    map[string][]value
+		wantErr *TypeError
+	}{
+		"foo(":         {want: map[string][]value{"": {{Value: regexp.MustCompile(`foo\(`)}}}},
+		"(foo|bar)(":   {want: map[string][]value{"": {{Value: regexp.MustCompile(`(foo|bar)\(`)}}}},
+		"foo[":         {want: map[string][]value{"": {{Value: regexp.MustCompile(`foo\[`)}}}},
+		"*foo":         {want: map[string][]value{"": {{Value: regexp.MustCompile(`\*foo`)}}}},
+		"$foo":         {want: map[string][]value{"": {{Value: regexp.MustCompile(`\$foo`)}}}},
+		`foo\s=\s$bar`: {want: map[string][]value{"": {{Value: regexp.MustCompile(`foo\s=\s\$bar`)}}}},
+	}
+	for input, test := range tests {
+		t.Run(input, func(t *testing.T) {
+			syntaxQuery, err := syntax.Parse(input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			query, err := conf.Check(syntaxQuery)
+			if err != nil && test.wantErr == nil {
+				t.Fatal(err)
+			} else if err == nil && test.wantErr != nil {
+				t.Fatalf("got err == nil, want %q", test.wantErr)
+			} else if test.wantErr != nil && err.Error() != test.wantErr.Error() {
+				t.Fatalf("got err == %q, want %q", err, test.wantErr)
+			}
+			if err != nil {
+				return
+			}
+			if got := toTestValueMap(query.Fields); !reflect.DeepEqual(got, test.want) {
+				t.Errorf("fields\ngot  %+v\nwant %+v", got, test.want)
+			}
+		})
+	}
+}
