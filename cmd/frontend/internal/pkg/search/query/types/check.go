@@ -140,8 +140,6 @@ func setValue(dst *Value, valueString string, valueType ValueType) error {
 	return nil
 }
 
-var possibleEscapeErrorRegexp = regexp.MustCompile(`missing closing `)
-
 func compileRegexp(value string) (*regexp.Regexp, error) {
 	var r *regexp.Regexp
 	var err error
