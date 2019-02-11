@@ -164,7 +164,7 @@ func preprocessRegexpQuery(value string) string {
 	// If we find a `$` that wasn't escaped, escape it.
 	if match := unescapedDollarSignRegexp.FindStringIndex(v); len(match) > 0 {
 		i := match[0]
-		if string(v[i]) != "$" {
+		if v[i] != '$' {
 			// If first character in match substring isn't `$`, adjust by 1
 			i++
 		}
