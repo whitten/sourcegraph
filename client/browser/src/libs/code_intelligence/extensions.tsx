@@ -31,15 +31,16 @@ import { CodeHost } from './code_intelligence'
  * If extensions are not supported by the associated Sourcegraph instance, the extensions controller will behave as
  * though no individual extensions are enabled, which makes it effectively a noop.
  */
-export function initializeExtensions({
-    getCommandPaletteMount,
-    urlToFile,
-}: Pick<CodeHost, 'getCommandPaletteMount' | 'urlToFile'>): PlatformContextProps & ExtensionsControllerProps {
+export function initializeExtensions(
+    { getCommandPaletteMount, urlToFile }: Pick<CodeHost, 'getCommandPaletteMount' | 'urlToFile'>,
+    showGlobalDebug: boolean
+): PlatformContextProps & ExtensionsControllerProps {
     const platformContext = createPlatformContext({ urlToFile })
     const extensionsController = createExtensionsController(platformContext)
     const history = H.createBrowserHistory()
 
     if (getCommandPaletteMount) {
+        console.log('SALUT')
         render(
             <ShortcutProvider>
                 <TelemetryContext.Provider value={eventLogger}>
@@ -58,6 +59,7 @@ export function initializeExtensions({
 
     render(
         <GlobalDebug
+            showDebug={showGlobalDebug}
             extensionsController={extensionsController}
             location={history.location}
             platformContext={platformContext}

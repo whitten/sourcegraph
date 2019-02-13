@@ -23,6 +23,13 @@ const config = {
   // By default, don't clutter `yarn test --watch` output with the full coverage table. To see it, use the
   // `--coverageReporters text` jest option.
   coverageReporters: ['json', 'lcov', 'text-summary'],
+  globals: {
+    'ts-jest': {
+      diagnostics: {
+        warnOnly: true,
+      },
+    },
+  },
 }
 
 module.exports = config

@@ -245,17 +245,12 @@ export interface FileInfo {
  *
  * @param codeHost
  */
-function initCodeIntelligence(
-    codeHost: CodeHost
-): {
-    hoverifier: Hoverifier<RepoSpec & RevSpec & FileSpec & ResolvedRevSpec, HoverMerged, ActionItemProps>
-    controllers: ExtensionsControllerProps & PlatformContextProps
-} {
-    const {
-        platformContext,
-        extensionsController,
-    }: PlatformContextProps & ExtensionsControllerProps = initializeExtensions(codeHost)
-
+export function initCodeIntelligence(
+    codeHost: CodeHost,
+    controllers: ExtensionsControllerProps & PlatformContextProps,
+    showGlobalDebug: boolean
+): Hoverifier<RepoSpec & RevSpec & FileSpec & ResolvedRevSpec, HoverMerged, ActionItemProps> {
+    const { platformContext, extensionsController } = controllers
     const { getHover } = createLSPFromExtensions(extensionsController)
 
     /** Emits when the close button was clicked */
@@ -398,7 +393,7 @@ function initCodeIntelligence(
         overlayContainerMount
     )
 
-    return { hoverifier, controllers: { platformContext, extensionsController } }
+    return hoverifier
 }
 
 /**
@@ -410,12 +405,14 @@ export interface ResolvedCodeView extends CodeViewWithOutSelector {
     codeView: HTMLElement
 }
 
-function handleCodeHost(codeHost: CodeHost): Subscription {
-    const {
-        hoverifier,
-        controllers: { platformContext, extensionsController },
-    } = initCodeIntelligence(codeHost)
+const SHOW_DEBUG = () => localStorage.getItem('debug') !== null
 
+export function handleCodeHost(
+    codeHost: CodeHost,
+    { extensionsController, platformContext }: ExtensionsControllerProps & PlatformContextProps,
+    showGlobalDebug = SHOW_DEBUG()
+): Subscription {
+    const hoverifier = initCodeIntelligence(codeHost, { extensionsController, platformContext }, showGlobalDebug)
     const subscriptions = new Subscription()
 
     subscriptions.add(hoverifier)
@@ -586,13 +583,20 @@ function handleCodeHost(codeHost: CodeHost): Subscription {
     return subscriptions
 }
 
-async function injectCodeIntelligenceToCodeHosts(codeHosts: CodeHost[]): Promise<Subscription> {
+export async function injectCodeIntelligenceToCodeHosts(
+    codeHosts: CodeHost[],
+    showDebug = SHOW_DEBUG()
+): Promise<Subscription> {
     const subscriptions = new Subscription()
 
     for (const codeHost of codeHosts) {
         const isCodeHost = await Promise.resolve(codeHost.check())
         if (isCodeHost) {
-            subscriptions.add(handleCodeHost(codeHost))
+            const controllers: PlatformContextProps & ExtensionsControllerProps = initializeExtensions(
+                codeHost,
+                showDebug
+            )
+            subscriptions.add(handleCodeHost(codeHost, controllers, showDebug))
             break
         }
     }

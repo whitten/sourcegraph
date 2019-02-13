@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`initCodeIntelligence() renders the overlay container  1`] = `
+<Context.Provider
+  value={
+    EventLogger {
+      "generateAnonUserID": [Function],
+      "getAnonUserID": [Function],
+      "uid": "uuid",
+    }
+  }
+>
+  <HoverOverlayContainer />
+</Context.Provider>
+`;
