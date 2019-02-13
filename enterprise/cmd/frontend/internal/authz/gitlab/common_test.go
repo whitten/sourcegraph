@@ -113,7 +113,7 @@ func (m *mockGitLab) GetProject(c *gitlab.Client, ctx context.Context, op gitlab
 	if proj.Visibility == gitlab.Public {
 		return proj, nil
 	}
-	if proj.Visibility == gitlab.Internal && (c.OAuthToken != "" || (m.sudoTok != "" && c.PersonalAccessToken == m.sudoTok)) {
+	if proj.Visibility == gitlab.Internal && m.isClientAuthenticated(c) {
 		return proj, nil
 	}
 
@@ -150,7 +150,7 @@ func (m *mockGitLab) ListTree(c *gitlab.Client, ctx context.Context, op gitlab.L
 	if proj.Visibility == gitlab.Public {
 		return ret, nil
 	}
-	if proj.Visibility == gitlab.Internal && (c.OAuthToken != "" || (m.sudoTok != "" && c.PersonalAccessToken == m.sudoTok)) {
+	if proj.Visibility == gitlab.Internal && m.isClientAuthenticated(c) {
 		return ret, nil
 	}
 
@@ -162,6 +162,14 @@ func (m *mockGitLab) ListTree(c *gitlab.Client, ctx context.Context, op gitlab.L
 	}
 
 	return nil, gitlab.ErrNotFound
+}
+
+// isClientAuthenticated returns true if the client is authenticated. User is authenticated if OAuth
+// token is non-empty (note: this mock impl doesn't verify validity of the OAuth token) or if the
+// personal access token is non-empty (note: this mock impl requires that the PAT be equivalent to
+// the mock GitLab sudo token).
+func (m *mockGitLab) isClientAuthenticated(c *gitlab.Client) bool {
+	return c.OAuthToken != "" || (m.sudoTok != "" && c.PersonalAccessToken == m.sudoTok)
 }
 
 func (m *mockGitLab) getAcctID(c *gitlab.Client) int32 {
