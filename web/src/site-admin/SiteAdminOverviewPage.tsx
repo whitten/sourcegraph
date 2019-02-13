@@ -1,10 +1,12 @@
 import { LoadingSpinner } from '@sourcegraph/react-loading-spinner'
+import H from 'history'
 import { upperFirst } from 'lodash'
 import ChartLineIcon from 'mdi-react/ChartLineIcon'
 import CityIcon from 'mdi-react/CityIcon'
 import EmoticonIcon from 'mdi-react/EmoticonIcon'
 import OpenInNewIcon from 'mdi-react/OpenInNewIcon'
 import PackageVariantIcon from 'mdi-react/PackageVariantIcon'
+import RocketIcon from 'mdi-react/RocketIcon'
 import UserIcon from 'mdi-react/UserIcon'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
@@ -18,10 +20,17 @@ import { queryGraphQL } from '../backend/graphql'
 import { OverviewItem, OverviewList } from '../components/Overview'
 import { PageTitle } from '../components/PageTitle'
 import { eventLogger } from '../tracking/eventLogger'
+import {
+    fetchSiteAdminChecklist,
+    percentageDone,
+    SiteAdminChecklist,
+    SiteAdminChecklistInfo,
+} from './SiteAdminActivation'
 import { SiteAdminManagementConsolePassword } from './SiteAdminManagementConsolePassword'
 import { UsageChart } from './SiteAdminUsageStatisticsPage'
 
 interface Props {
+    history: H.History
     overviewComponents: ReadonlyArray<React.ComponentType>
     isLightTheme: boolean
 }
@@ -30,6 +39,7 @@ interface State {
     info?: OverviewInfo
     stats?: GQL.ISiteUsageStatistics
     error?: Error
+    onboardingChecklist?: SiteAdminChecklistInfo
 }
 
 const fetchOverview: () => Observable<OverviewInfo> = () =>
@@ -93,6 +103,9 @@ export class SiteAdminOverviewPage extends React.Component<Props, State> {
         this.subscriptions.add(
             fetchWeeklyActiveUsers().subscribe(stats => this.setState({ stats }), error => this.setState({ error }))
         )
+        this.subscriptions.add(
+            fetchSiteAdminChecklist().subscribe(onboardingChecklist => this.setState({ onboardingChecklist }))
+        )
     }
 
     public componentWillUnmount(): void {
@@ -100,6 +113,7 @@ export class SiteAdminOverviewPage extends React.Component<Props, State> {
     }
 
     public render(): JSX.Element | null {
+        const setupPercentage = this.state.onboardingChecklist ? percentageDone(this.state.onboardingChecklist) : 0
         return (
             <div className="site-admin-overview-page pt-3">
                 <PageTitle title="Overview - Admin" />
@@ -117,6 +131,32 @@ export class SiteAdminOverviewPage extends React.Component<Props, State> {
                 <OverviewList>
                     {this.state.info && (
                         <>
+                            {this.state.onboardingChecklist && (
+                                <OverviewItem
+                                    icon={RocketIcon}
+                                    title={`${setupPercentage}% of setup completed`}
+                                    defaultExpanded={setupPercentage < 100}
+                                >
+                                    <div className="onboarding-container">
+                                        <div className="header">
+                                            {setupPercentage < 100 ? (
+                                                <div>
+                                                    <h1>Almost there...</h1>
+                                                    <div>
+                                                        Complete the steps below to finish setting up Sourcegraph.
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <h2>Setup is complete!</h2>
+                                            )}
+                                        </div>
+                                        <SiteAdminChecklist
+                                            history={this.props.history}
+                                            checklistInfo={this.state.onboardingChecklist}
+                                        />
+                                    </div>
+                                </OverviewItem>
+                            )}
                             <OverviewItem
                                 link="/explore"
                                 icon={PackageVariantIcon}

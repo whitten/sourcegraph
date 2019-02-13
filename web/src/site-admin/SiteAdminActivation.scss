@@ -1,0 +1,94 @@
+.onboarding-button:hover {
+    .link-like {
+        color: var(--body);
+    }
+}
+
+.onboarding-button {
+    .link-like {
+        color: $link-color;
+    }
+    .progress-bar-container {
+        width: 1.5em;
+        margin-left: 0.5em;
+        margin-right: 0.3em;
+
+        svg.CircularProgressbar {
+            .CircularProgressbar-path {
+                stroke: $oc-green-4;
+            }
+            .CircularProgressbar-trail {
+                stroke: $oc-red-4;
+            }
+        }
+    }
+}
+
+.onboarding-container {
+    .header {
+        padding: 0.5em;
+
+        p {
+            padding-left: 3em;
+            margin-bottom: 0;
+        }
+    }
+}
+.site-admin-checklist-container {
+    ul.site-admin-checklist {
+        padding: 0;
+        margin: 0;
+
+        li {
+            list-style-type: none;
+            padding: 0;
+            border-bottom: 1px solid $color-light-border;
+        }
+        li:first-child {
+            border-top-left-radius: 0.5em;
+            border-top-right-radius: 0.5em;
+        }
+        li:last-child {
+            border-bottom: none;
+            border-bottom-left-radius: 0.5em;
+            border-bottom-right-radius: 0.5em;
+        }
+        li:hover {
+            background-color: $color-light-bg-2;
+        }
+    }
+    p {
+        margin: 0;
+    }
+    .item-container {
+        padding-left: 0.5em;
+        padding-right: 0.5em;
+        padding-top: 0.75em;
+        padding-bottom: 0.75em;
+        cursor: pointer;
+    }
+    .info-button {
+        float: right;
+        color: $color-text-1;
+    }
+    .info-button:hover {
+        color: $color-light-text-2;
+    }
+    .item-detail {
+        padding-top: 1em;
+        padding-left: 2em;
+        padding-right: 2em;
+    }
+    .item-detail.show {
+        display: block;
+    }
+    .item-detail.hide {
+        display: none;
+    }
+    .done {
+        color: $oc-green-6;
+    }
+    .todo {
+        color: $oc-red-6;
+    }
+}

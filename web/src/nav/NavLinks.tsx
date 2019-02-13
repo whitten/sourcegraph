@@ -11,6 +11,7 @@ import { PlatformContextProps } from '../../../shared/src/platform/context'
 import { SettingsCascadeProps } from '../../../shared/src/settings/settings'
 import { isDiscussionsEnabled } from '../discussions'
 import { KeybindingsProps } from '../keybindings'
+import { SiteAdminActivationPopoverButton } from '../site-admin/SiteAdminActivation'
 import { UserNavItem } from './UserNavItem'
 
 interface Props
@@ -19,6 +20,7 @@ interface Props
         ExtensionsControllerProps<'executeCommand' | 'services'>,
         PlatformContextProps<'forceUpdateTooltip'> {
     location: H.Location
+    history: H.History
     authenticatedUser: GQL.IUser | null
     isLightTheme: boolean
     onThemeChange: () => void
@@ -64,6 +66,15 @@ export class NavLinks extends React.PureComponent<Props> {
                     platformContext={this.props.platformContext}
                     location={this.props.location}
                 />
+                {this.props.authenticatedUser && this.props.authenticatedUser.siteAdmin && (
+                    <SiteAdminActivationPopoverButton
+                        menu={ContributableMenu.CommandPalette}
+                        history={this.props.history}
+                        location={this.props.location}
+                        platformContext={this.props.platformContext}
+                        extensionsController={this.props.extensionsController}
+                    />
+                )}
                 {(!this.props.showDotComMarketing ||
                     !!this.props.authenticatedUser ||
                     this.props.location.pathname !== '/welcome') && (
