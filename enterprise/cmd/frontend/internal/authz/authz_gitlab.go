@@ -99,9 +99,10 @@ func gitlabProvider(cfg *conf.Unified, gl *schema.GitLabConnection) (authz.Provi
 		ext := idp.External
 		for _, authProvider := range cfg.Critical.AuthProviders {
 			saml := authProvider.Saml
+			foundMatchingSAML := (saml != nil && saml.ConfigID == ext.AuthProviderID && ext.AuthProviderType == saml.Type)
 			oidc := authProvider.Openidconnect
-			if (saml != nil && saml.ConfigID == ext.AuthProviderID && ext.AuthProviderType == saml.Type) ||
-				(oidc != nil && oidc.ConfigID == ext.AuthProviderID && ext.AuthProviderType == oidc.Type) {
+			foundMatchingOIDC := (oidc != nil && oidc.ConfigID == ext.AuthProviderID && ext.AuthProviderType == oidc.Type)
+			if foundMatchingSAML || foundMatchingOIDC {
 				return NewGitLabSudoProvider(permgl.SudoProviderOp{
 					BaseURL: glURL,
 					AuthnConfigID: auth.ProviderConfigID{
