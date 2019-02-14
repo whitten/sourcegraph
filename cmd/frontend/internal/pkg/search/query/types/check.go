@@ -159,55 +159,61 @@ var unescapedDollarSignRegexp = regexp.MustCompile(`[^\\]?\$.*$`)
 // preprocessRegexpQuery looks for common mistakes in regexp search queries that
 // don't cause regexp compile errors and fix them beforehand.
 func preprocessRegexpQuery(value string) string {
-	v := value
+	return escapeDollarSigns(value)
+}
 
-	// If we find a `$` that wasn't escaped, escape it.
-	if match := unescapedDollarSignRegexp.FindStringIndex(v); len(match) > 0 {
-		i := match[0]
-		if v[i] != '$' {
-			// If first character in match substring isn't `$`, adjust by 1
-			i++
+func escapeDollarSigns(value string) string {
+	out := ""
+
+	parts := strings.Split(value, "$")
+	for i, part := range parts {
+		s := ""
+		if i == len(parts)-1 && part == "" {
+			s = "$"
+		} else if i > 0 {
+			prev := parts[i-1]
+			if l := len(prev); l > 0 && prev[l-1:] == `\` {
+				s = "$" + part
+			} else {
+				s = `\$` + part
+			}
+		} else {
+			s = part
 		}
-
-		v = fmt.Sprintf(`%s\%s`, v[:i], v[i:])
+		out += s
 	}
 
-	return v
+	return out
 }
 
-var escapeErrorRegexps = []*regexp.Regexp{
-	regexp.MustCompile("missing argument to repetition operator: `"),
-	regexp.MustCompile("missing closing "),
+var escapeErrorMessages = []string{
+	"missing argument to repetition operator: `",
+	"missing closing ",
 }
-
-const (
-	asterisk    rune = 42
-	openParen   rune = 40
-	openBracket rune = 91
-)
 
 var unmatchedOpeningRuneRegexps = map[rune]*regexp.Regexp{
-	openParen:   regexp.MustCompile(`\([^\)]*$`),
-	openBracket: regexp.MustCompile(`\[[^\]]*$`),
+	'(': regexp.MustCompile(`\([^\)]*$`),
+	'[': regexp.MustCompile(`\[[^\]]*$`),
 }
 
 func fixupRegexpCompileError(value string, err error) (*regexp.Regexp, error) {
 	msg := err.Error()
-	var matchIndex []int
+	index := -1
 
-	for _, errorRegexp := range escapeErrorRegexps {
-		matchIndex = errorRegexp.FindStringIndex(msg)
-		if len(matchIndex) > 0 {
+	for _, errorMsg := range escapeErrorMessages {
+		index = strings.Index(msg, errorMsg)
+		if index > -1 {
+			index = len(errorMsg) + index
 			break
 		}
 	}
 
-	if len(matchIndex) == 0 {
+	if index == -1 {
 		return nil, err
 	}
 
-	runeToEscape := flipRune(rune(msg[matchIndex[1]]))
-	if runeToEscape == asterisk {
+	runeToEscape := flipRune(rune(msg[index]))
+	if runeToEscape == '*' {
 		toEscape := string(runeToEscape)
 		escaper := strings.NewReplacer(toEscape, `\`+toEscape)
 
@@ -216,12 +222,15 @@ func fixupRegexpCompileError(value string, err error) (*regexp.Regexp, error) {
 		return regexp.Compile(correctedValue)
 	}
 
-	r := unmatchedOpeningRuneRegexps[runeToEscape]
+	if r := unmatchedOpeningRuneRegexps[runeToEscape]; r != nil {
+		fmt.Println(string(runeToEscape), r)
+		match := r.FindStringIndex(value)
+		correctedValue := fmt.Sprintf(`%s\%s`, value[:match[0]], value[match[0]:])
 
-	match := r.FindStringIndex(value)
-	correctedValue := fmt.Sprintf(`%s\%s`, value[:match[0]], value[match[0]:])
+		return regexp.Compile(correctedValue)
+	}
 
-	return regexp.Compile(correctedValue)
+	return nil, err
 }
 
 // flipRune maps opening block characters (e.g. ), ]) to their opening

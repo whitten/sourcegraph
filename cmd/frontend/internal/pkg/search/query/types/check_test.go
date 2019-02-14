@@ -156,6 +156,15 @@ func TestCompileRegexp(t *testing.T) {
 		{query: "*foo", want: `\*foo`},
 		{query: "$foo", want: `\$foo`},
 		{query: `foo\s=\s$bar`, want: `foo\s=\s\$bar`},
+
+		// Valid regexps
+		{query: `foo\(`, want: `foo\(`},
+		{query: `(foo|bar)\(`, want: `(foo|bar)\(`},
+		{query: `foo\[`, want: `foo\[`},
+		{query: `\*foo`, want: `\*foo`},
+		{query: `\$foo`, want: `\$foo`},
+		{query: `foo$`, want: `foo$`},
+		{query: `foo\s=\s\$bar`, want: `foo\s=\s\$bar`},
 	}
 
 	for _, test := range tests {
