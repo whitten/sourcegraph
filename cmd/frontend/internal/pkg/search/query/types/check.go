@@ -154,8 +154,6 @@ func compileRegexp(value string) (*regexp.Regexp, error) {
 	return r, err
 }
 
-var unescapedDollarSignRegexp = regexp.MustCompile(`[^\\]?\$.*$`)
-
 // preprocessRegexpQuery looks for common mistakes in regexp search queries that
 // don't cause regexp compile errors and fix them beforehand.
 func preprocessRegexpQuery(value string) string {
