@@ -17,8 +17,9 @@ import (
 )
 
 func Test_GitLab_FetchAccount(t *testing.T) {
-	gitlabMock := newMockGitLab(t,
-		[]*gitlab.User{
+	gitlabMock := newMockGitLab(mockGitLabOp{
+		t: t,
+		users: []*gitlab.User{
 			{
 				ID:       101,
 				Username: "b.l",
@@ -38,7 +39,7 @@ func Test_GitLab_FetchAccount(t *testing.T) {
 				Identities: nil,
 			},
 		},
-		nil, nil, nil, nil, "")
+	})
 	gitlab.MockListUsers = gitlabMock.ListUsers
 
 	tests := []GitLab_FetchAccount_Test{
@@ -224,14 +225,15 @@ func Test_SudoProvider_RepoPerms(t *testing.T) {
 	// - user 1 owns its own repositories and nothing else
 	// - user 2 owns its own repos and has guest access to user 1's
 	// - user 3 owns its own repos and has full access to user 1's and guest access to user 2's
-	gitlabMock := newMockGitLab(t, nil,
-		[]int{ // public projects
+	gitlabMock := newMockGitLab(mockGitLabOp{
+		t: t,
+		publicProjs: []int{ // public projects
 			991,
 		},
-		[]int{ // internal projects
+		internalProjs: []int{ // internal projects
 			981,
 		},
-		map[int][2][]int32{ // private projects
+		privateProjs: map[int][2][]int32{ // private projects
 			10: {
 				{ // guests
 					2,
@@ -254,9 +256,8 @@ func Test_SudoProvider_RepoPerms(t *testing.T) {
 				{3},
 			},
 		},
-		nil,
-		"sudo-token",
-	)
+		sudoTok: "sudo-token",
+	})
 	gitlab.MockGetProject = gitlabMock.GetProject
 	gitlab.MockListTree = gitlabMock.ListTree
 

@@ -20,14 +20,15 @@ func Test_GitLab_RepoPerms(t *testing.T) {
 	// - u1 owns its own repositories and nothing else
 	// - u2 owns its own repos and has guest access to u1's
 	// - u3 owns its own repos and has full access to u1's and guest access to u2's
-	gitlabMock := newMockGitLab(t, nil,
-		[]int{ // public projects
+	gitlabMock := newMockGitLab(mockGitLabOp{
+		t: t,
+		publicProjs: []int{ // public projects
 			991,
 		},
-		[]int{ // internal projects
+		internalProjs: []int{ // internal projects
 			981,
 		},
-		map[int][2][]int32{ // private projects
+		privateProjs: map[int][2][]int32{ // private projects
 			10: {
 				{ // guests
 					2,
@@ -50,13 +51,12 @@ func Test_GitLab_RepoPerms(t *testing.T) {
 				{3},
 			},
 		},
-		map[string]int32{
+		oauthToks: map[string]int32{
 			"oauth-u1": 1,
 			"oauth-u2": 2,
 			"oauth-u3": 3,
 		},
-		"",
-	)
+	})
 	gitlab.MockGetProject = gitlabMock.GetProject
 	gitlab.MockListTree = gitlabMock.ListTree
 
@@ -151,14 +151,15 @@ func Test_GitLab_RepoPerms(t *testing.T) {
 }
 
 func Test_GitLab_RepoPerms_cache(t *testing.T) {
-	gitlabMock := newMockGitLab(t, nil,
-		[]int{ // public projects
+	gitlabMock := newMockGitLab(mockGitLabOp{
+		t: t,
+		publicProjs: []int{ // public projects
 			991,
 		},
-		[]int{ // internal projects
+		internalProjs: []int{ // internal projects
 			981,
 		},
-		map[int][2][]int32{ // private projects
+		privateProjs: map[int][2][]int32{ // private projects
 			10: {
 				{ // guests
 					2,
@@ -168,13 +169,12 @@ func Test_GitLab_RepoPerms_cache(t *testing.T) {
 				},
 			},
 		},
-		map[string]int32{
+		oauthToks: map[string]int32{
 			"oauth-u1": 1,
 			"oauth-u2": 2,
 			"oauth-u3": 3,
 		},
-		"",
-	)
+	})
 	gitlab.MockGetProject = gitlabMock.GetProject
 	gitlab.MockListTree = gitlabMock.ListTree
 

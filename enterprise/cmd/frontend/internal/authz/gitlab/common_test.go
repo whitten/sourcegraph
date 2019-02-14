@@ -61,21 +61,43 @@ type mockGitLab struct {
 	madeUsers map[string]map[string]int
 }
 
+type mockGitLabOp struct {
+	t *testing.T
+
+	// users is a list of users on the GitLab instance
+	users []*gitlab.User
+
+	// publicProjs is the list of public project IDs
+	publicProjs []int
+
+	// internalProjs is the list of internal project IDs
+	internalProjs []int
+
+	// privateProjs is a map from { privateProjectID -> [ guestUserIDs, contentUserIDs ] } It
+	// determines the structure of private project permissions. A "guest" user can access private
+	// project metadata, but not project repository contents. A "content" user can access both.
+	privateProjs map[int][2][]int32
+
+	// oauthToks is a map from OAuth tokens to the corresponding GitLab user ID
+	oauthToks map[string]in32
+
+	// sudoTok, if non-empty, is the personal access token accepted with sudo permissions on this
+	// instance. The mock implementation only supports having one such token value.
+	sudoTok string
+}
+
 // newMockGitLab returns a new mockGitLab instance
-func newMockGitLab(
-	t *testing.T, users []*gitlab.User, publicProjs []int, internalProjs []int, privateProjs map[int][2][]int32, // privateProjs maps from { projID -> [ guestUserIDs, contentUserIDs ] }
-	oauthToks map[string]int32, sudoTok string,
-) mockGitLab {
+func newMockGitLab(op mockGitLabOp) mockGitLab {
 	projs := make(map[int]*gitlab.Project)
 	privateGuest := make(map[int32][]int)
 	privateRepo := make(map[int32][]int)
-	for _, p := range publicProjs {
+	for _, p := range op.publicProjs {
 		projs[p] = &gitlab.Project{Visibility: gitlab.Public, ProjectCommon: gitlab.ProjectCommon{ID: p}}
 	}
-	for _, p := range internalProjs {
+	for _, p := range op.internalProjs {
 		projs[p] = &gitlab.Project{Visibility: gitlab.Internal, ProjectCommon: gitlab.ProjectCommon{ID: p}}
 	}
-	for p, userAccess := range privateProjs {
+	for p, userAccess := range op.privateProjs {
 		projs[p] = &gitlab.Project{Visibility: gitlab.Private, ProjectCommon: gitlab.ProjectCommon{ID: p}}
 
 		guestUsers, contentUsers := userAccess[0], userAccess[1]
@@ -87,13 +109,13 @@ func newMockGitLab(
 		}
 	}
 	return mockGitLab{
-		t:              t,
+		t:              op.t,
 		projs:          projs,
-		users:          users,
+		users:          op.users,
 		privateGuest:   privateGuest,
 		privateRepo:    privateRepo,
-		oauthToks:      oauthToks,
-		sudoTok:        sudoTok,
+		oauthToks:      op.oauthToks,
+		sudoTok:        op.sudoTok,
 		madeGetProject: map[string]map[gitlab.GetProjectOp]int{},
 		madeListTree:   map[string]map[gitlab.ListTreeOp]int{},
 		madeUsers:      map[string]map[string]int{},
