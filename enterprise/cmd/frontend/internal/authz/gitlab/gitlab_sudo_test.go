@@ -10,13 +10,34 @@ import (
 	"github.com/sourcegraph/sourcegraph/cmd/frontend/auth"
 	"github.com/sourcegraph/sourcegraph/cmd/frontend/authz"
 	"github.com/sourcegraph/sourcegraph/cmd/frontend/types"
-	"github.com/sourcegraph/sourcegraph/enterprise/cmd/frontend/auth/gitlaboauth"
 	"github.com/sourcegraph/sourcegraph/pkg/api"
 	"github.com/sourcegraph/sourcegraph/pkg/extsvc"
 	"github.com/sourcegraph/sourcegraph/pkg/extsvc/gitlab"
 )
 
 func Test_GitLab_FetchAccount(t *testing.T) {
+	// Test structures
+	type call struct {
+		description string
+
+		user    *types.User
+		current []*extsvc.ExternalAccount
+
+		expMine *extsvc.ExternalAccount
+	}
+	type test struct {
+		description string
+
+		// authnProviders is the list of auth providers that are mocked
+		authnProviders []auth.Provider
+
+		// op configures the SudoProvider instance
+		op SudoProviderOp
+
+		calls []call
+	}
+
+	// Mocks
 	gitlabMock := newMockGitLab(mockGitLabOp{
 		t: t,
 		users: []*gitlab.User{
@@ -42,7 +63,8 @@ func Test_GitLab_FetchAccount(t *testing.T) {
 	})
 	gitlab.MockListUsers = gitlabMock.ListUsers
 
-	tests := []GitLab_FetchAccount_Test{
+	// Test cases
+	tests := []test{
 		{
 			description: "1 authn provider, basic authz provider",
 			authnProviders: []auth.Provider{
@@ -57,7 +79,7 @@ func Test_GitLab_FetchAccount(t *testing.T) {
 				GitLabProvider:    "okta.mine",
 				UseNativeUsername: false,
 			},
-			calls: []GitLab_FetchAccount_Test_call{
+			calls: []call{
 				{
 					description: "1 account, matches",
 					user:        &types.User{ID: 123},
@@ -99,7 +121,7 @@ func Test_GitLab_FetchAccount(t *testing.T) {
 				BaseURL:           mustURL(t, "https://gitlab.mine"),
 				UseNativeUsername: true,
 			},
-			calls: []GitLab_FetchAccount_Test_call{
+			calls: []call{
 				{
 					description: "username match",
 					user:        &types.User{ID: 123, Username: "b.l"},
@@ -121,7 +143,7 @@ func Test_GitLab_FetchAccount(t *testing.T) {
 				GitLabProvider:    "okta.mine",
 				UseNativeUsername: false,
 			},
-			calls: []GitLab_FetchAccount_Test_call{
+			calls: []call{
 				{
 					description: "no matches",
 					user:        &types.User{ID: 123, Username: "b.l"},
@@ -147,7 +169,7 @@ func Test_GitLab_FetchAccount(t *testing.T) {
 				GitLabProvider:    "onelogin.mine",
 				UseNativeUsername: false,
 			},
-			calls: []GitLab_FetchAccount_Test_call{
+			calls: []call{
 				{
 					description: "1 authn provider matches",
 					user:        &types.User{ID: 123},
@@ -165,55 +187,33 @@ func Test_GitLab_FetchAccount(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test.run(t)
-	}
-}
+		test := test
+		t.Run(test.description, func(t *testing.T) {
+			auth.MockProviders = test.authnProviders
+			defer func() { auth.MockProviders = nil }()
 
-type GitLab_FetchAccount_Test struct {
-	description string
+			ctx := context.Background()
+			authzProvider := NewSudoProvider(test.op)
+			for _, c := range test.calls {
+				t.Run(c.description, func(t *testing.T) {
+					acct, err := authzProvider.FetchAccount(ctx, c.user, c.current)
+					if err != nil {
+						t.Errorf("unexpected error: %v", err)
+						return
+					}
+					// ignore AccountData field in comparison
+					if acct != nil {
+						acct.AccountData, c.expMine.AccountData = nil, nil
+					}
 
-	// authnProviders is the list of auth providers that are mocked
-	authnProviders []auth.Provider
-
-	// op configures the SudoProvider instance
-	op SudoProviderOp
-
-	calls []GitLab_FetchAccount_Test_call
-}
-
-type GitLab_FetchAccount_Test_call struct {
-	description string
-
-	user    *types.User
-	current []*extsvc.ExternalAccount
-
-	expMine *extsvc.ExternalAccount
-}
-
-func (g GitLab_FetchAccount_Test) run(t *testing.T) {
-	t.Logf("Test case %q", g.description)
-
-	auth.UpdateProviders(gitlaboauth.PkgName, g.authnProviders)
-
-	ctx := context.Background()
-	authzProvider := NewSudoProvider(g.op)
-	for _, c := range g.calls {
-		t.Logf("Call %q", c.description)
-		acct, err := authzProvider.FetchAccount(ctx, c.user, c.current)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-			continue
-		}
-		// ignore AccountData field in comparison
-		if acct != nil {
-			acct.AccountData, c.expMine.AccountData = nil, nil
-		}
-
-		if !reflect.DeepEqual(acct, c.expMine) {
-			dmp := diffmatchpatch.New()
-			t.Errorf("wantUser != user\n%s",
-				dmp.DiffPrettyText(dmp.DiffMain(spew.Sdump(c.expMine), spew.Sdump(acct), false)))
-		}
+					if !reflect.DeepEqual(acct, c.expMine) {
+						dmp := diffmatchpatch.New()
+						t.Errorf("wantUser != user\n%s",
+							dmp.DiffPrettyText(dmp.DiffMain(spew.Sdump(c.expMine), spew.Sdump(acct), false)))
+					}
+				})
+			}
+		})
 	}
 }
 

@@ -79,7 +79,7 @@ type mockGitLabOp struct {
 	privateProjs map[int][2][]int32
 
 	// oauthToks is a map from OAuth tokens to the corresponding GitLab user ID
-	oauthToks map[string]in32
+	oauthToks map[string]int32
 
 	// sudoTok, if non-empty, is the personal access token accepted with sudo permissions on this
 	// instance. The mock implementation only supports having one such token value.
